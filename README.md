@@ -1,2 +1,2 @@
-# -Exogenous-Stablecoin
-P-F-A-E Stablecoin
+# Exogenous-Stablecoin
+CAT Stablecoin
