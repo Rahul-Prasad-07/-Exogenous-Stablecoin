@@ -54,8 +54,7 @@ contract DSCEngine is ReentrancyGuard {
     // we are mapping the token address to the price feed address bcz we need to know the price of the token
     // so we have list of s_priceFeeds(these are allowed token) : where we are going to set it ? --> In constructor
     mapping(address token => address priceFeed) private s_priceFeeds;
-    mapping(address user => mapping(address token => uint256 amount))
-        private s_collateralDeposited;
+    mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
 
     DecentralizedStablecoin private immutable i_dsc;
 
@@ -63,11 +62,7 @@ contract DSCEngine is ReentrancyGuard {
     //------ Events ------//
     ///////////////////////
 
-    event collateralDeposited(
-        address indexed user,
-        address indexed token,
-        uint256 amount
-    );
+    event collateralDeposited(address indexed user, address indexed token, uint256 amount);
 
     ///////////////////////////
     //------ Modifier ------//
@@ -156,15 +151,8 @@ contract DSCEngine is ReentrancyGuard {
      *
      *
      */
-    function depositeCollateral(
-        address tokenCollateralAddress,
-        uint256 amountCollateral
-    )
-        external
-        moreThanZero(amountCollateral)
-        isAllowedToken(tokenCollateralAddress)
-        nonReentrant
-    {  
+    function depositeCollateral(address tokenCollateralAddress,uint256 amountCollateral) external moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
+
         // Effects 
         //internal record keeping
         s_collateralDeposited[msg.sender][tokenCollateralAddress] += amountCollateral; // updating state and when we update state we emit event
