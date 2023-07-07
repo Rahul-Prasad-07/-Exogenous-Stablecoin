@@ -1,8 +1,30 @@
 pragma solidity ^0.8.18;
 
+// Layout of contract
+// Version
+// imports
+// errors
+// interfaces, libraries, contracts
+// type declarations
+// state variables
+// events
+// modifiers
+// functions
+
+// Layout of functions
+// constructor
+// recieve function (if exists)
+// fallback function (if exists)
+// external
+// public
+// internal
+// private
+// view & pure functions
+
 import {DecentralizedStablecoin} from "./CatStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /** 
  * @title DSCEngine
@@ -33,11 +55,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice This contract is very loosely based on the MakerDao DSS (DAI) system 
  * 
  * Where to start writing ? 
- * - as you procced with actual proccess, you need to add deposite. Yes then start with depositeCollateral func.
+ * - as you procced with actual proccess, you need to add deposite. Yes then start with "depositeCollateral"func.
+ * - Then you need to add minting. Yes then start with "mintDsc" func.
  * 
  * **/
 
 contract DSCEngine is ReentrancyGuard {
+
+
     ///////////////////////
     //------ Errors -----//
     ///////////////////////
@@ -55,8 +80,13 @@ contract DSCEngine is ReentrancyGuard {
     // so we have list of s_priceFeeds(these are allowed token) : where we are going to set it ? --> In constructor
     mapping(address token => address priceFeed) private s_priceFeeds;
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
+    mapping(address user => uint256) private s_dscMinted;
 
+    address [] private s_collateralTokens; // list of all collateral token. push tokenAddress[i] this variable in our constructor
     DecentralizedStablecoin private immutable i_dsc;
+
+    uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
+    uint256 private constant PRECISION = 1e18;
 
     ////////////////////////
     //------ Events ------//
@@ -119,10 +149,12 @@ contract DSCEngine is ReentrancyGuard {
 
         for (uint256 i = 0; i < tokenAddress.length; i++) {
             s_priceFeeds[tokenAddress[i]] = priceFeedAddress[i]; // set token address to price feed address
+            s_collateralTokens.push(tokenAddress[i]); // array of all collateral token
         }
 
         i_dsc = DecentralizedStablecoin(dscAddress);
     }
+
 
     ////////////////////////////////////
     //------ External Functions ------//
@@ -150,7 +182,8 @@ contract DSCEngine is ReentrancyGuard {
      *
      *
      *
-     */
+    */
+
     function depositeCollateral(address tokenCollateralAddress,uint256 amountCollateral) external moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
 
         // Effects 
@@ -172,11 +205,103 @@ contract DSCEngine is ReentrancyGuard {
 
     function redeemCollateral() external {}
 
-    function mintDsc() external {}
+    /**
+     * @notice follows CEI pattern (checks-effects-interactions)
+     * @param amountDscToMint The amount of decentralized stablecoin to mint
+     * @notice nonReentrant is gas intensive, if your func doesn't need that then remove while auditing
+     * @notice they must have more collateral value than the minimum collateralization ratio (Threshold) 
+     * checks ?
+     * - check if the collateral value > DSC amount
+     * 
+     * Logic --> mintDsc func 
+     * keep track of how much DSC they minted
+     * 
+     */
+
+    function mintDsc(uint256 amountDscToMint) external moreThanZero(amountDscToMint) nonReentrant {
+
+        s_dscMinted[msg.sender] += amountDscToMint;
+
+        // if they minted too much DSC then revert, so check the health factor
+        _revertIfHealthFactorIsBroken(msg.sender);
+
+    }
 
     function burnDsc() external {}
 
     function liquidate() external {}
 
     function getHealthFactor() external {}
+
+
+    //////////////////////////////////////////////
+    //------ Private & Internal Functions ------//
+    //////////////////////////////////////////////
+
+    /**
+     * 
+     * @param user The address of the user to check the health factor for
+     * check health factor (do they have enough collateral to mint DSC)
+     * revert if they don't have enough collateral
+     */
+
+    function _revertIfHealthFactorIsBroken(address user) internal view{}
+     
+    /**
+     * 
+     * @param user The address of the user to check the health factor for
+     * @return The health factor of the user
+     * if the user goes below 1, then they can get liquidated
+     * 
+     * * What we need for check?
+     * - Total dsc minted
+     * - Total collateral deposited VALUE
+     */
+    function _healthFactor(address user) private view returns(uint256){
+
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+    }
+
+    function _getAccountInformation(address user) private view returns(uint256 totalDscMinted, uint256 collateralValueInUsd){
+
+        // to get total Dsc minted, you can get from mapping that we have created: s_dscMinted
+
+        totalDscMinted = s_dscMinted[user];
+        collateralValueInUsd = getAccountCollateralValueInUsd(user); // public function to get collateral value in USD
+    }
+
+    //////////////////////////////////////////////
+    //------ Public & External Functions ------//
+    //////////////////////////////////////////////
+
+    function getAccountCollateralValueInUsd(address user) public view returns(uint256 totalCollateralValueInUsd){
+
+        // loop through all the collateral token, get the amount they have deposited and map it to
+        // the price, to get the USD value : we have mapping of s_priceFeed
+        // we are going to be that more agnostic, so any amount of token you can deposite --> make state variable of address array s_collateralToken
+
+        for(uint256 i=0; i < s_collateralTokens.length; i++ ){
+
+            address token = s_collateralTokens[i];
+            uint256 amount = s_collateralDeposited[user][token];
+
+            totalCollateralValueInUsd += getUsdValue(token, amount);
+
+
+        }
+        return totalCollateralValueInUsd;
+    }
+    
+    // this is where we get real price using PriceFeed by chainlink
+    function getUsdValue(address token, uint256 amount) public view returns(uint256){
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
+        (,int256 price,,,) = priceFeed.latestRoundData();
+        
+        // 1 ETH = $1000
+        // The returned value from CL will be 1000 * 1e8;
+        return ((uint256(price)* ADDITIONAL_FEED_PRECISION) * amount)/PRECISION; // ((1000 * 1e8 *(1e10)) * 1000 * 1e18)/1e18
+
+    }
+
+
 }
