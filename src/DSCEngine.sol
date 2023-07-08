@@ -71,7 +71,8 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressAndPriceFeedAddressMustBeSameLength();
     error DSCEngine__NotAllowedToken();
     error DSCEngine__TransferFailed();
-    DSC__BreakHealthFactor(uint256 healthFactor);
+    error DSC__BreakHealthFactor(uint256 healthFactor);
+    error DSCEngine__MintFailed();
 
     /////////////////////////////////
     //------ State Variables ------//
@@ -228,6 +229,15 @@ contract DSCEngine is ReentrancyGuard {
 
         // if they minted too much DSC then revert, so check the health factor
         _revertIfHealthFactorIsBroken(msg.sender);
+
+        // to mint dsc we have CatStableCoin contract that has functionalities to mint DSC but the owner of that contract can only mint it 
+        //  function mint(address _to, uint256 _amount) external onlyOwner returns (bool)
+
+        bool minted = i_dsc.mint(msg.sender,amountDscToMint )
+        if(!minted){
+            revert DSCEngine__MintFailed();
+        }
+
 
     }
 
