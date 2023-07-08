@@ -71,6 +71,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressAndPriceFeedAddressMustBeSameLength();
     error DSCEngine__NotAllowedToken();
     error DSCEngine__TransferFailed();
+    DSC__BreakHealthFactor(uint256 healthFactor);
 
     /////////////////////////////////
     //------ State Variables ------//
@@ -87,6 +88,9 @@ contract DSCEngine is ReentrancyGuard {
 
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant PRECISION = 1e18;
+    uint256 private constant LIQUIDATION_THRESHOLD = 50 ; // It means you need to be 200% overcollateralized
+    uint256 private constant LIQUIDATION_PRECISION = 100; // DIDVIDE it while checking health factor bcz it's has big value 
+    uint256 private constant MIN_HEALTH_FACTOR = 1;  
 
     ////////////////////////
     //------ Events ------//
@@ -245,7 +249,14 @@ contract DSCEngine is ReentrancyGuard {
      * revert if they don't have enough collateral
      */
 
-    function _revertIfHealthFactorIsBroken(address user) internal view{}
+    function _revertIfHealthFactorIsBroken(address user) internal view{
+
+        uint256 userHealthFactor = _healthFactor ;
+        if(userHealthFactor < MIN_HEALTH_FACTOR){
+            revert DSC__BreakHealthFactor(userHealthFactor);
+        }
+
+    }
      
     /**
      * 
@@ -256,10 +267,24 @@ contract DSCEngine is ReentrancyGuard {
      * * What we need for check?
      * - Total dsc minted
      * - Total collateral deposited VALUE
+     * 
+     *   check healthFactor : $100/ 100 dsc = 1 , now we go down less than $100 then we will go in undercollateralized
+     *   so we need to be always overcollateralized , so you need to set thresold ( atleats $150/ 100 dsc): you need to create thresold
+     *   $150 ETH / 100 dsc = 1.5 --> but now 150*50 = 7500, 7500/100 = 75, 75/100 <1
+     *   $1000 ETH * 50 = 50,000, 50,000 /100 = 500, 500/100 >1 
      */
     function _healthFactor(address user) private view returns(uint256){
 
         (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+
+        // check healthFactor : $100/ 100 dsc = 1 , now we go down less than $100 then we will go in undercollateralized
+        // so we need to be always overcollateralized , so you need to set thresold ( atleats $150/ 100 dsc): you need to create thresold
+        // $150 ETH / 100 dsc = 1.5 --> but now 150*50 = 7500, 7500/100 = 75, 75/100 <1
+        // $1000 ETH * 50 = 50,000, 50,000 /100 = 500, 500/100 >1 
+
+        uint256 collateralAdjustedForThresold = (collateralValueInUsd * LIQUIDATION_THRESHOLD)/LIQUIDATION_PRECISION ;
+
+        return (collateralAdjustedForThresold * PRECISION)/ totalDscMinted ;
     }
 
     function _getAccountInformation(address user) private view returns(uint256 totalDscMinted, uint256 collateralValueInUsd){
