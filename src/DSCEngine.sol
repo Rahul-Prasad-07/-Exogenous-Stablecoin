@@ -233,7 +233,7 @@ contract DSCEngine is ReentrancyGuard {
         // to mint dsc we have CatStableCoin contract that has functionalities to mint DSC but the owner of that contract can only mint it 
         //  function mint(address _to, uint256 _amount) external onlyOwner returns (bool)
 
-        bool minted = i_dsc.mint(msg.sender,amountDscToMint )
+        bool minted = i_dsc.mint(msg.sender,amountDscToMint );
         if(!minted){
             revert DSCEngine__MintFailed();
         }
@@ -261,7 +261,7 @@ contract DSCEngine is ReentrancyGuard {
 
     function _revertIfHealthFactorIsBroken(address user) internal view{
 
-        uint256 userHealthFactor = _healthFactor ;
+        uint256 userHealthFactor = _healthFactor(user);
         if(userHealthFactor < MIN_HEALTH_FACTOR){
             revert DSC__BreakHealthFactor(userHealthFactor);
         }
