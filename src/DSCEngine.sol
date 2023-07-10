@@ -98,6 +98,7 @@ contract DSCEngine is ReentrancyGuard {
     ///////////////////////
 
     event collateralDeposited(address indexed user, address indexed token, uint256 amount);
+    event CollateralRedeemed(address indexed user, address indexed token, uint256 amount);
 
     ///////////////////////////
     //------ Modifier ------//
@@ -215,10 +216,44 @@ contract DSCEngine is ReentrancyGuard {
         }
 
     }
+    
+    /**
+     * 
+     * @param tokenCollateralAddress The address of the token to deposit as collateral
+     * @param amountCollateral  The amount of collateral to redeem
+     * @notice health factor must be greater than 1 after collateral pulled
+     * DRY : Don't repeat yourself
+     * CEI : checks-effects-interactions vialoted little bit bcz we need to check health factor before and after
+     */
+    function  redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral) public moreThanZero(amountCollateral) nonReentrant {
+        
+        // solidity dosen't do (100-1000--> revert), so we don't need to worry about that
+        s_collateralDeposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
 
-    function redeemCollateralForDsc() external {}
+        // state chnage : emit event
+        emit CollateralRedeemed(msg.sender,tokenCollateralAddress,amountCollateral);
 
-    function redeemCollateral() external {}
+        // return collateral to user
+        bool succes = IERC20(tokenCollateralAddress).transfer(msg.sender, amountCollateral);
+        if(!succes){
+            revert DSCEngine__TransferFailed();
+        }
+        _revertIfHealthFactorIsBroken(msg.sender); // if dosen't need then remove while auditing
+    }
+    
+    
+    /**
+     * 
+     * @param tokenCollateralAddress collateral address to redeem
+     * @param amountCollateral amount of collateral to redeem
+     * @param amountDscToBurn  amount of DSC to burn
+     * This function burns DSC and redeems collateral in one transaction
+     */
+    function redeemCollateralForDsc(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToBurn) external {
+        burnDsc(amountDscToBurn);
+        redeemCollateral(tokenCollateralAddress, amountCollateral);
+        // redeem collateral has alredy checks health factor so we don't need to check again
+    }
 
     /**
      * @notice follows CEI pattern (checks-effects-interactions)
@@ -250,8 +285,19 @@ contract DSCEngine is ReentrancyGuard {
 
 
     }
+ 
+    function burnDsc(uint256 amount) public moreThanZero(amount)  {
+        // mapping our dsc in s_dscMinted, we need to burn it or reduce it
+        s_dscMinted[msg.sender] -= amount;
+        bool succes = i_dsc.transferFrom(msg.sender, address(this), amount);
+        if(!succes){
+            revert DSCEngine__TransferFailed();
+            // we almost can't revert here bcz we already reduced the amount
+        }
 
-    function burnDsc() external {}
+        i_dsc.burn(amount);
+        _revertIfHealthFactorIsBroken(msg.sender); // if dosen't need then remove while auditing
+    }
 
     function liquidate() external {}
 
