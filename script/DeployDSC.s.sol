@@ -22,6 +22,8 @@ contract DeployDSC is Script {
         (address wethUsdPriceFeed, address wbtcUsdPriceFeed, address weth, address wbtc, uint256 deployerKey) = config.activeNetworkConfig();
 
         // now our dscengine take array of tokenAddress and priceFeedAddress
+        tokenAddress = [weth, wbtc];
+        priceFeedAddress = [wethUsdPriceFeed, wbtcUsdPriceFeed];
 
 
         vm.startBroadcast(deployerKey);
