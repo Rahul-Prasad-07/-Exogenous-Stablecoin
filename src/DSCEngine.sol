@@ -164,8 +164,18 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////////////////////
     //------ External Functions ------//
     ////////////////////////////////////
-
-    function depositCollateralAndMintDsc() external {}
+    
+    /**
+     * 
+     * @param tokenCollateralAddress The address of the token to deposit as collateral
+     * @param amountCollateral The amount of collateral to deposit
+     * @param amountDscToMint  The amount of DSC to mint
+     * @notice This function deposits collateral and mints DSC in one transaction
+     */
+    function depositCollateralAndMintDsc(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToMint) external {
+        depositeCollateral(tokenCollateralAddress, amountCollateral);
+        mintDsc(amountDscToMint);
+    }
 
     /**
      * @notice follows CEI pattern (checks-effects-interactions)
@@ -189,7 +199,7 @@ contract DSCEngine is ReentrancyGuard {
      *
     */
 
-    function depositeCollateral(address tokenCollateralAddress,uint256 amountCollateral) external moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
+    function depositeCollateral(address tokenCollateralAddress,uint256 amountCollateral) public moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
 
         // Effects 
         //internal record keeping
@@ -223,7 +233,7 @@ contract DSCEngine is ReentrancyGuard {
      * 
      */
 
-    function mintDsc(uint256 amountDscToMint) external moreThanZero(amountDscToMint) nonReentrant {
+    function mintDsc(uint256 amountDscToMint) public moreThanZero(amountDscToMint) nonReentrant {
 
         s_dscMinted[msg.sender] += amountDscToMint;
 
