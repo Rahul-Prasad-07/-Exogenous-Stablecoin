@@ -203,7 +203,10 @@ contract DSCEngine is ReentrancyGuard {
      *
     */
 
-    function depositeCollateral(address tokenCollateralAddress,uint256 amountCollateral) public moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
+    function depositeCollateral(address tokenCollateralAddress,uint256 amountCollateral) public 
+       moreThanZero(amountCollateral) 
+       isAllowedToken(tokenCollateralAddress) 
+       nonReentrant {
 
         // Effects 
         //internal record keeping
@@ -516,6 +519,11 @@ contract DSCEngine is ReentrancyGuard {
         // The returned value from CL will be 1000 * 1e8;
         return ((uint256(price)* ADDITIONAL_FEED_PRECISION) * amount)/PRECISION; // ((1000 * 1e8 *(1e10)) * 1000 * 1e18)/1e18
 
+    }
+    
+    // we are building this func again for public bcz we need to test deposit collateral and get account infor function
+    function getAccountInformation(address user) external view returns (uint256 totalDscMinted, uint256 collateralValueInUsd){
+        (totalDscMinted, collateralValueInUsd) =  _getAccountInformation(user);
     }
 
     
