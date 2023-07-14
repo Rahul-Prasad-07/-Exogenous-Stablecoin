@@ -58,6 +58,10 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
  * - as you procced with actual proccess, you need to add deposite. Yes then start with "depositeCollateral"func.
  * - Then you need to add minting. Yes then start with "mintDsc" func.
  * 
+ * @dev s_: state storage variable
+ * @dev i_: immutable storage variable
+ * 
+ * 
  * **/
 
 contract DSCEngine is ReentrancyGuard {

@@ -9,6 +9,25 @@ import {DSCEngine} from "../../src/DSCEngine.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 
+/**
+ * @title DSCEngineTest
+ * @author Rahul Prasad
+ * @notice This contract is used to test the DSCEngine contract. DSCEngine contract is the main contract of our system. It is the logic contract of our system.
+ * @notice everytime we run testcase, it first run setup and then run perticular test function.
+ * 
+ * @dev exceptRevert cheetcode is used to check the revert message.It syas that the next line after this will execute if the function revert.
+ * @dev startPrank cheetcode is used to set the msg.sender to sepcified address for the next call. we can know excatly who is calling the function.
+ * @dev makeAddr cheetcode is used to create the address derived from the provided name (USER).
+ * @notice vm.prank(USER)  means the next call will be made by USER.
+ * @dev deal cheetcode is allows to set the balance of ana address who to newBalance or used send the test ether to the contract.
+ * @notice vm.deal(USER, AMOUNT_COLLATERAL) means the USER will send the AMOUNT_COLLATERAL to the contract.
+ * @dev we have used modifier depositCollateral() bcz we have use this function everytime we want to deposit the collateral for lots of testcases. like we mostly fund our contract before every test case.
+ * @dev cheetcode hoax(address(i),SEND_AMOUNT) is used to do both functionalities in one go : Prank and deal.
+ * @dev cheetcode v.txGasPrice(GAS_PRICE) used to set gasprice for the next call.
+ * @dev gasleft() is in-built function which returns the gas left in the contract.
+ * 
+ * @notice we follows Arrange, Act, Assert pattern for writing the testcases.
+ */
 contract DSCEngineTest is Test {
 
     DeployDSC deployer;
@@ -28,9 +47,10 @@ contract DSCEngineTest is Test {
 
 
     /**
-     * @dev This function will run before every test function.
+     * @dev This function will run before every test function.This is like main(PSVM) function in java.
      * It will deploy the DSC and DSCEngine contracts.
      * It will also set the deployer address.
+     * HelperConfig contract is used to write configuration for the network. like for deploying smart contract on different chains.
      * config is the HelperConfig contract which will be used to get the pricefeed address.
      */
     function setUp() public {
@@ -57,7 +77,7 @@ contract DSCEngineTest is Test {
     
     address[] public tokenAddress;
     address[] public priceFeedAddress;
-
+    
     function testRevertIfTokenLengthDoesntMatchPriceFeeds() public {
         tokenAddress.push(weth);
         priceFeedAddress.push(ethUsdPriceFeed);
@@ -146,8 +166,6 @@ contract DSCEngineTest is Test {
         uint256 expectedDepositeAmount = dsce.getTokenAmountFromUsd(weth, collateralValueInUsd);
         assertEq(totalDscMinted, expectedTotalDscMinted);
         assertEq(AMOUNT_COLLATERAL, expectedDepositeAmount);
-
-
 
 
     }
