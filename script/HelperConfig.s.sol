@@ -23,11 +23,15 @@ contract HelperConfig is Script {
     uint8 public constant DECIMALS =8;      
     int256 public constant ETH_USD_PRICE = 2000e8;
     int256 public constant BTC_USD_PRICE = 1000e8;
-    uint256 public DEFAULT_ANVIL_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+    uint256 public DEFAULT_ANVIL_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80; //we need to store this on env
 
     NetworkConfig public activeNetworkConfig;
     
-
+    
+    /**
+     * @notice This function will set the activeNetworkConfig variable.
+     * It will check the chain id and based on that it will set the activeNetworkConfig variable.
+     */
     constructor() {
         if(block.chainid ==  11155111){
             activeNetworkConfig = getSepoliaEthConfig();
@@ -46,16 +50,24 @@ contract HelperConfig is Script {
             deployerKey: vm.envUint("PRIVATE_KEY")
         });
     }
-
+    
+    /**
+     * @notice This function will create the config for the anvil network.
+     * @notice constructor of MockV3Aggregator is taking two arguments : decimals and price --> (DECIMALS, ETH_USD_PRICE/BTC_USD_PRICE)
+     * 
+     * 1. Deploy the mock price feeds for eth and btc.
+     * 2. Deploy the mock erc20 tokens for eth and btc.
+     * 3. return the mock price feeds and mock erc20 tokens address.
+     */
     function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory){
+        
+        // if we don't put this check then it will create the config & Deploy contracts everytime we call this function.
         if(activeNetworkConfig.wethUsdPriceFeed != address(0)){
             return activeNetworkConfig;
         }
 
-        // now we are going to do broadcasting
-         // we need couple of mocks of price feeds and ERC20 tokens
-   
-         vm.startBroadcast();
+        // now we are going to do broadcasting.we need couple of mocks of price feeds and ERC20 tokens
+        vm.startBroadcast();
     
         // for eth
         MockV3Aggregator ethUsdPriceFeed = new MockV3Aggregator(

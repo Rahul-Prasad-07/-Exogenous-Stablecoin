@@ -18,14 +18,15 @@ contract DeployDSC is Script {
 
         HelperConfig config = new HelperConfig();
 
-        //now we are going to get the config
+        //now we are going to get the config : returning struct from the activeNetworkConfig function
         (address wethUsdPriceFeed, address wbtcUsdPriceFeed, address weth, address wbtc, uint256 deployerKey) = config.activeNetworkConfig();
 
         // now our dscengine take array of tokenAddress and priceFeedAddress
         tokenAddress = [weth, wbtc];
         priceFeedAddress = [wethUsdPriceFeed, wbtcUsdPriceFeed];
 
-
+        
+        // Whatever lies in this between startBroadcast and stopBroadcast will be broadcasted to the network.
         vm.startBroadcast(deployerKey);
 
         DecentralizedStablecoin dsc = new DecentralizedStablecoin();
@@ -33,8 +34,6 @@ contract DeployDSC is Script {
 
         //DecentralizedStableCoin contract is owned by only DscEngine. So transfer ownership to deployer
         dsc.transferOwnership(address(engine));
-
-
         vm.stopBroadcast();
 
         return (dsc, engine,config);
