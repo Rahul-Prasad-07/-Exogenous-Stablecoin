@@ -135,6 +135,15 @@ contract DSCEngineTest is Test {
      * @notice we need to check "isAllowedToken" modifier in depositeColllateral func
      * @notice for that you need to pass tokenCollateralAddress(address token) , also need to mock ERC20
      * @notice you need to send token(name,symbol) and user and amount
+     * In the run() function of the DeployDSC contract, the HelperConfig contract is used to get the active network configuration, 
+     * including the addresses of WETH (Wrapped Ether) and WBTC (Wrapped Bitcoin) tokens, as well as their corresponding price feeds. 
+     * These addresses are stored in the weth, wbtc, wethUsdPriceFeed, and wbtcUsdPriceFeed variables.
+     * 
+     * Next, the tokenAddress and priceFeedAddress arrays are populated with the addresses of WETH and WBTC tokens, and their respective price feeds. 
+     * These arrays are then passed as arguments to the constructor of the DSCEngine contract when deploying a new instance of DSCEngine.
+     * 
+     * The isAllowedToken modifier can now use the s_priceFeeds mapping to check whether the tokenCollateralAddress provided in the depositeCollateral function exists in the mapping. 
+     * If the token is not found (i.e., its associated price feed address is address(0)), the modifier will cause the transaction to fail, preventing the function from executing with an invalid token address.
      */
     function testRevertsWithUnapprovedCollateral() public {
 
